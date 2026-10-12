@@ -1,0 +1,36 @@
+{
+  "name": "GoRide (iOS)",
+  "identifier": "com.goride.altstore.source",
+  "subtitle": "نسخ iOS للتجربة",
+  "description": "مصدر لتطبيقات GoRide على iOS (نسخ unsigned توقّع بحسابك المجاني).",
+  "iconURL": "https://raw.githubusercontent.com/khairysaad/goride-apps/main/customer_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024%401x.png",
+  "tintColor": "#0E2750",
+  "apps": [
+    {
+      "name": "GoRide",
+      "subtitle": "تطبيق الراكب",
+      "bundleIdentifier": "com.goride.customer",
+      "developerName": "GoRide",
+      "version": "1.0.0",
+      "versionDate": "2026-10-12T07:01:47Z",
+      "downloadURL": "https://github.com/khairysaad/goride-apps/releases/download/ios-latest/goride-customer-unsigned.ipa",
+      "localizedDescription": "تطبيق الراكب لطلب الرحلات وتتبّعها.",
+      "iconURL": "https://raw.githubusercontent.com/khairysaad/goride-apps/main/customer_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024%401x.png",
+      "tintColor": "#0E2750",
+      "size": 14737761
+    },
+    {
+      "name": "GoRide Driver",
+      "subtitle": "تطبيق السائق",
+      "bundleIdentifier": "com.goride.driver",
+      "developerName": "GoRide",
+      "version": "1.0.0",
+      "versionDate": "2026-10-12T07:01:47Z",
+      "downloadURL": "https://github.com/khairysaad/goride-apps/releases/download/ios-latest/goride-driver-unsigned.ipa",
+      "localizedDescription": "تطبيق السائق لاستقبال الرحلات وتنفيذها.",
+      "iconURL": "https://raw.githubusercontent.com/khairysaad/goride-apps/main/driver_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024%401x.png",
+      "tintColor": "#0E2750",
+      "size": 14377919
+    }
+  ]
+}
