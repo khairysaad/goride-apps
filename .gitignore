@@ -1,0 +1,50 @@
+# ==== GoRide monorepo (root) ====
+# Each app already ships a Flutter .gitignore; these are extra safety nets.
+
+# Dart / Flutter
+**/.dart_tool/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+**/.flutter-devtools/
+
+# iOS / CocoaPods
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Runner.xcworkspace/xcuserdata/
+**/ios/Runner.xcodeproj/xcuserdata/
+**/ios/ExportOptions.plist
+**/ios/**/xcuserdata/
+
+# Android
+**/.gradle/
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+
+# IDE / editors
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Accidental PowerShell redirect artifacts (e.g. `> $null`)
+**/$null
+
+# Signing / secrets — never commit
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.p8

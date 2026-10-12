@@ -1,0 +1,69 @@
+# Codemagic CI — GoRide (iOS -> TestFlight)
+#
+# This repo holds two Flutter apps in subfolders:
+#   - customer_app  (bundle id: com.goride.customer)
+#   - driver_app    (bundle id: com.goride.driver)
+#
+# Before the first run:
+#   1) Push this repository (containing both app folders + this file) to GitHub/Bitbucket/GitLab.
+#   2) In App Store Connect create two app records with the bundle ids above.
+#   3) In Codemagic -> Teams -> Integrations -> App Store Connect, add an API key named
+#      "goride_appstore" and make sure it has access to both apps.
+#   4) Codemagic will handle iOS signing automatically (distribution_type: app_store).
+#
+# Run the "customer-ios" / "driver-ios" workflows manually, or push a git tag to auto-run.
+
+workflows:
+  customer-ios:
+    name: GoRide Customer — iOS TestFlight
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: goride_appstore
+    environment:
+      flutter: 3.29.3
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.goride.customer
+    working_directory: customer_app
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Build signed IPA
+        script: flutter build ipa --release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  driver-ios:
+    name: GoRide Driver — iOS TestFlight
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: goride_appstore
+    environment:
+      flutter: 3.29.3
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.goride.driver
+    working_directory: driver_app
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Build signed IPA
+        script: flutter build ipa --release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

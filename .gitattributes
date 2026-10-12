@@ -1,0 +1,24 @@
+# Normalize line endings to LF in the repository (Windows works with autocrlf).
+* text=auto eol=lf
+
+# Shell scripts and iOS tooling must stay LF
+*.sh    text eol=lf
+Podfile text eol=lf
+*.rb    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.dart  text eol=lf
+*.gradle text eol=lf
+gradlew text eol=lf
+
+# Binary-ish assets: leave untouched
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.jar   binary
+*.keystore binary
+*.jks   binary
+*.p12   binary
+*.mobileprovision binary
