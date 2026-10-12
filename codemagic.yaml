@@ -4,14 +4,19 @@
 #   - customer_app  (bundle id: com.goride.customer)
 #   - driver_app    (bundle id: com.goride.driver)
 #
-# Before the first run:
-#   1) Push this repository (containing both app folders + this file) to GitHub/Bitbucket/GitLab.
-#   2) In App Store Connect create two app records with the bundle ids above.
-#   3) In Codemagic -> Teams -> Integrations -> App Store Connect, add an API key named
-#      "goride_appstore" and make sure it has access to both apps.
-#   4) Codemagic will handle iOS signing automatically (distribution_type: app_store).
+# One-time setup before the first run:
+#   1) Enroll in the Apple Developer Program and create two app records in
+#      App Store Connect with the bundle ids above.
+#   2) Create an App Store Connect API key (Users and Access -> Integrations ->
+#      App Store Connect API -> Team Keys) with role "App Manager".
+#      Keep the .p8 file and note the Key ID + Issuer ID.
+#   3) In Codemagic -> Teams -> Integrations -> Developer Portal, add the API key
+#      as an App Store Connect integration named "goride_appstore".
+#      (This single integration handles both code signing and TestFlight upload.)
+#   4) Push this repo to GitHub. Codemagic will pick up codemagic.yaml automatically.
 #
-# Run the "customer-ios" / "driver-ios" workflows manually, or push a git tag to auto-run.
+# Run "customer-ios" / "driver-ios" manually from the Codemagic UI, or push a
+# tag matching v* to build both automatically.
 
 workflows:
   customer-ios:
@@ -31,15 +36,24 @@ workflows:
     scripts:
       - name: Flutter pub get
         script: flutter pub get
+      - name: Apply Xcode signing settings
+        script: xcode-project use-profiles
       - name: Build signed IPA
-        script: flutter build ipa --release
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$(($BUILD_NUMBER))
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        # Uncomment after creating an external tester group to auto-distribute:
+        # beta_groups:
+        #   - Public Testers
 
   driver-ios:
     name: GoRide Driver — iOS TestFlight
@@ -58,12 +72,20 @@ workflows:
     scripts:
       - name: Flutter pub get
         script: flutter pub get
+      - name: Apply Xcode signing settings
+        script: xcode-project use-profiles
       - name: Build signed IPA
-        script: flutter build ipa --release
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$(($BUILD_NUMBER))
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        # beta_groups:
+        #   - Public Testers
