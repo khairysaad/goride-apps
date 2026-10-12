@@ -1,0 +1,64 @@
+name: Build unsigned iOS IPA (free sideload)
+
+# Free pipeline: builds an UNSIGNED .ipa on a GitHub-hosted macOS runner.
+# Download the artifact, then install on your iPhone with Sideloadly / AltStore
+# using a normal (free) Apple ID. App expires every 7 days and must be re-signed.
+#
+# Notes:
+#  - Runners are FREE only while this repository is PUBLIC.
+#  - Push notifications (FCM) do NOT work with free Apple ID provisioning.
+#  - Start it manually from the Actions tab -> "Run workflow".
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'customer_app/**'
+      - 'driver_app/**'
+      - '.github/workflows/ios-unsigned.yml'
+
+jobs:
+  build:
+    name: ${{ matrix.app }} — unsigned IPA
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [ customer_app, driver_app ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.29.3
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        working-directory: ${{ matrix.app }}
+        run: flutter pub get
+
+      - name: Build iOS (no codesign)
+        working-directory: ${{ matrix.app }}
+        run: flutter build ios --release --no-codesign
+
+      - name: Package into .ipa
+        working-directory: ${{ matrix.app }}
+        run: |
+          set -e
+          rm -rf Payload Runner-unsigned.ipa
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry Runner-unsigned.ipa Payload
+          ls -lh Runner-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-unsigned-ipa
+          path: ${{ matrix.app }}/Runner-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
