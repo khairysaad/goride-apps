@@ -1,13 +1,15 @@
 name: Build unsigned iOS IPA (free sideload)
 
-# Free pipeline: builds an UNSIGNED .ipa on a GitHub-hosted macOS runner.
-# Download the artifact, then install on your iPhone with Sideloadly / AltStore
-# using a normal (free) Apple ID. App expires every 7 days and must be re-signed.
+# Free pipeline:
+#  1) builds UNSIGNED .ipa for both apps on a GitHub-hosted macOS runner,
+#  2) publishes them as a GitHub Release (tag: ios-latest) -> stable public URLs,
+#  3) regenerates altstore-source.json and commits it to main.
 #
-# Notes:
-#  - Runners are FREE only while this repository is PUBLIC.
-#  - Push notifications (FCM) do NOT work with free Apple ID provisioning.
-#  - Start it manually from the Actions tab -> "Run workflow".
+# Add this source URL in AltStore (Browse -> Sources -> +):
+#   https://raw.githubusercontent.com/khairysaad/goride-apps/main/altstore-source.json
+#
+# Notes: runners are FREE only while this repo is PUBLIC. Push notifications do NOT
+# work with free Apple ID provisioning. Install/refresh still needs AltStore+AltServer.
 
 on:
   workflow_dispatch:
@@ -17,6 +19,10 @@ on:
       - 'customer_app/**'
       - 'driver_app/**'
       - '.github/workflows/ios-unsigned.yml'
+
+concurrency:
+  group: ios-unsigned
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -67,3 +73,108 @@ jobs:
           path: ${{ matrix.app }}/Runner-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    name: Publish AltStore source
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download built IPAs
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect IPAs
+        run: |
+          set -e
+          mkdir -p out
+          cp "artifacts/customer_app-unsigned-ipa/Runner-unsigned.ipa" out/goride-customer-unsigned.ipa
+          cp "artifacts/driver_app-unsigned-ipa/Runner-unsigned.ipa" out/goride-driver-unsigned.ipa
+          ls -lh out
+
+      - name: Publish GitHub Release (ios-latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          gh release delete ios-latest --yes --cleanup-tag || true
+          gh release create ios-latest \
+            out/goride-customer-unsigned.ipa \
+            out/goride-driver-unsigned.ipa \
+            --title "GoRide iOS (unsigned sideload build)" \
+            --notes "Unsigned iOS IPAs for AltStore / Sideloadly. Sign with your free Apple ID on install (expires after 7 days)."
+
+      - name: Generate AltStore source JSON
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime
+
+          base = "https://github.com/khairysaad/goride-apps/releases/download/ios-latest"
+          raw  = "https://raw.githubusercontent.com/khairysaad/goride-apps/main"
+          icon = raw + "/customer_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024%401x.png"
+          now  = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+          def size(p):
+              return os.path.getsize(p)
+
+          apps = [
+              {
+                  "name": "GoRide",
+                  "subtitle": "تطبيق الراكب",
+                  "bundleIdentifier": "com.goride.customer",
+                  "developerName": "GoRide",
+                  "version": "1.0.0",
+                  "versionDate": now,
+                  "downloadURL": base + "/goride-customer-unsigned.ipa",
+                  "localizedDescription": "تطبيق الراكب لطلب الرحلات وتتبّعها.",
+                  "iconURL": icon,
+                  "tintColor": "#0E2750",
+                  "size": size("out/goride-customer-unsigned.ipa"),
+              },
+              {
+                  "name": "GoRide Driver",
+                  "subtitle": "تطبيق السائق",
+                  "bundleIdentifier": "com.goride.driver",
+                  "developerName": "GoRide",
+                  "version": "1.0.0",
+                  "versionDate": now,
+                  "downloadURL": base + "/goride-driver-unsigned.ipa",
+                  "localizedDescription": "تطبيق السائق لاستقبال الرحلات وتنفيذها.",
+                  "iconURL": raw + "/driver_app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024%401x.png",
+                  "tintColor": "#0E2750",
+                  "size": size("out/goride-driver-unsigned.ipa"),
+              },
+          ]
+
+          source = {
+              "name": "GoRide (iOS)",
+              "identifier": "com.goride.altstore.source",
+              "subtitle": "نسخ iOS للتجربة",
+              "description": "مصدر لتطبيقات GoRide على iOS (نسخ unsigned توقّع بحسابك المجاني).",
+              "iconURL": icon,
+              "tintColor": "#0E2750",
+              "apps": apps,
+          }
+
+          with open("altstore-source.json", "w", encoding="utf-8") as f:
+              json.dump(source, f, ensure_ascii=False, indent=2)
+          print(open("altstore-source.json", encoding="utf-8").read())
+          PY
+
+      - name: Commit AltStore source
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add altstore-source.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update AltStore source [skip ci]"
+            git push
+          fi
